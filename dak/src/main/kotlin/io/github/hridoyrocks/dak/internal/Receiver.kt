@@ -157,5 +157,5 @@ internal object DakDelivery {
         } == true
     }
 
-    fun userAgent(): String = "dak-android/${BuildConfig.SDK_VERSION} (Android ${android.os.Build.VERSION.RELEASE})"
+    fun userAgent(): String = "dakpush-android/${BuildConfig.SDK_VERSION} (Android ${android.os.Build.VERSION.RELEASE})"
 }

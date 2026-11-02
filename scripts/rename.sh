@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# The SDK's names are temporary until the product's brand and domain are
-# picked. They live in gradle.properties; this script changes them there and
-# moves the Kotlin package with them, in one go.
+# The Kotlin package and the Maven group are temporary until DakPush's domain
+# is bought. They live in gradle.properties; this script changes them there
+# and moves the Kotlin package with them, in one go.
 #
-#   scripts/rename.sh com.example.push                       # package (and namespace)
-#   scripts/rename.sh com.example.push com.example push-android  # also group and artifact
+#   scripts/rename.sh com.example.dakpush                             # package (and namespace)
+#   scripts/rename.sh com.example.dakpush com.example dakpush-android # also group and artifact
 #   scripts/rename.sh --check                                # CI: sources match gradle.properties
 #
 # Then build and test (./gradlew :dak:testDebugUnitTest), and look at git diff.

@@ -22,7 +22,7 @@ the SDK with `sdk.dir` in `local.properties`, or `ANDROID_HOME`.
 
 - **Unit tests** (`dak/src/test`) run on the JVM with Robolectric. Most run the
   real client and HTTP code against `FakeDakServer`, a MockWebServer that
-  answers like Dak's SDK endpoints (registration, device secrets, identity
+  answers like the DakPush server's SDK endpoints (registration, device secrets, identity
   verification, tag checks, opens and receipts). `TestScheduler` runs the
   SDK's worker on the test thread with virtual time, for retries and backoff.
 - **Against a real server** (`LocalServerTest`), skipped unless you point it at
@@ -75,8 +75,8 @@ activity is on screen to draw over.
 
 ## Names
 
-The package, group and artifact names are temporary. They live in
-`gradle.properties`; `scripts/rename.sh` changes them and moves the Kotlin
+The product is DakPush; the Kotlin package and the Maven group are temporary
+until its domain is chosen. All names live in `gradle.properties`; `scripts/rename.sh` changes them and moves the Kotlin
 package along, and `scripts/rename.sh --check` (run in CI) fails when a source
 file is outside the package there.
 

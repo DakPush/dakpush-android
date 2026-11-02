@@ -93,8 +93,8 @@ publishing {
             version = sdkVersion
             afterEvaluate { from(components["release"]) }
             pom {
-                name.set("Dak Android SDK")
-                description.set("Android SDK for Dak, a self-hosted push notification server.")
+                name.set("DakPush Android SDK")
+                description.set("Android SDK for DakPush, a self-hosted push notification server.")
                 licenses {
                     license {
                         name.set("MIT")

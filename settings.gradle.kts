@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "dak-push-android"
+rootProject.name = "dakpush-android"
 
 include(":dak")
 include(":example")

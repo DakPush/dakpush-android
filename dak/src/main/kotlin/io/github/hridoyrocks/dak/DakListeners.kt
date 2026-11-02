@@ -14,7 +14,7 @@ public fun interface DakForegroundListener {
 
 /** The device id. See [Dak.addDeviceIdListener]. */
 public fun interface DakDeviceIdListener {
-    /** This device's id on the Dak server. */
+    /** This device's id on the DakPush server. */
     public fun onDeviceId(deviceId: String)
 }
 

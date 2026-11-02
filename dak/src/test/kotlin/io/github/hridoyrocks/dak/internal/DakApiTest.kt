@@ -31,7 +31,7 @@ class DakApiTest {
     fun tearDown() = server.shutdown()
 
     private fun api(timeoutMs: Long = 5_000) =
-        DakApi(server.url("/").toString(), appId, UrlConnectionHttp(), "dak-android/test", timeoutMs)
+        DakApi(server.url("/").toString(), appId, UrlConnectionHttp(), "dakpush-android/test", timeoutMs)
 
     @Test
     fun registerPostsTheStateAndReadsTheSecret() {
@@ -43,7 +43,7 @@ class DakApiTest {
         assertEquals("POST", req.method)
         assertEquals("/v1/apps/$appId/devices", req.path)
         assertEquals("application/json", req.getHeader("Content-Type"))
-        assertEquals("dak-android/test", req.getHeader("User-Agent"))
+        assertEquals("dakpush-android/test", req.getHeader("User-Agent"))
         assertNull(req.getHeader("Authorization"))
         val body = JSONObject(req.body.readUtf8())
         assertTrue(body.has("external_id") && body.isNull("external_id"))

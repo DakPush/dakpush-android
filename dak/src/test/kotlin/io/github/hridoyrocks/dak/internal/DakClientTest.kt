@@ -52,7 +52,7 @@ class DakClientTest {
     }
 
     private fun api(baseUrl: String = server.baseUrl, appId: String = server.appId) =
-        DakApi(baseUrl, appId, UrlConnectionHttp(), "dak-android/test", timeoutMs = 5_000)
+        DakApi(baseUrl, appId, UrlConnectionHttp(), "dakpush-android/test", timeoutMs = 5_000)
 
     private fun client(
         api: DakApi = api(),

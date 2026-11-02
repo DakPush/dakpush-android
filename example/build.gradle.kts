@@ -35,7 +35,7 @@ android {
         // Your Dak server and App ID, in local.properties:
         //   dak.exampleAppId=0190…
         //   dak.exampleBaseUrl=https://push.example.com
-        // The default URL is a Dak on this computer, as the emulator sees it.
+        // The default URL is a DakPush server on this computer, as the emulator sees it.
         buildConfigField("String", "DAK_APP_ID", "\"${setting("dak.exampleAppId", "")}\"")
         buildConfigField("String", "DAK_BASE_URL", "\"${setting("dak.exampleBaseUrl", "http://10.0.2.2:8080")}\"")
     }

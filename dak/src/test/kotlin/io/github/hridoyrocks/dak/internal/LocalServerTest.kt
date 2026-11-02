@@ -38,7 +38,7 @@ class LocalServerTest {
     @Test
     fun registersAndKeepsTheServerInStep() {
         assumeTrue("set DAK_IT_BASE_URL and the others to run it", listOf(baseUrl, appId, identitySecret, restKey).all { it.isNotEmpty() })
-        val api = DakApi(baseUrl, appId, UrlConnectionHttp(), "dak-android/it")
+        val api = DakApi(baseUrl, appId, UrlConnectionHttp(), "dakpush-android/it")
         val store = MemoryStateStore()
         val pending = MemoryPendingStore()
         val ids = mutableListOf<String>()

@@ -3,7 +3,7 @@
     <application
         android:name=".ExampleApp"
         android:icon="@drawable/ic_example"
-        android:label="Dak example"
+        android:label="DakPush example"
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.DarkActionBar">

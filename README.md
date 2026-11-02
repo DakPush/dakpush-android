@@ -1,15 +1,15 @@
-# Dak Android SDK
+# DakPush Android SDK
 
-Native Android SDK for Dak, a self-hosted push notification server. It
-registers the device with your Dak server, links it to your user, keeps tags,
-shows Dak's notifications (image, up to 3 buttons, deep link, channel), and
-reports deliveries, opens and button taps.
+Native Android SDK for DakPush, a self-hosted push notification server. It
+registers the device with your DakPush server, links it to your user, keeps
+tags, shows DakPush notifications (image, up to 3 buttons, deep link,
+channel), and reports deliveries, opens and button taps.
 
 Delivery goes through your own Firebase project (FCM), so pushes cost nothing.
 Kotlin and Java. In-app messages come in 0.2.
 
-> **Pre-release.** The package, group and artifact names are temporary and
-> will change once the product has its final name. Nothing is published to
+> **Pre-release.** The Kotlin package and the Maven group are temporary and
+> will change once the product's domain is chosen. Nothing is published to
 > Maven Central or JitPack yet.
 
 ## Requirements
@@ -19,7 +19,7 @@ Kotlin and Java. In-app messages come in 0.2.
 | Android | minSdk 23 (Android 6.0), compileSdk 34 |
 | Kotlin / Java | Kotlin 2.0, or Java 11 |
 | Firebase Messaging | 25.1.3 (comes with the SDK; a newer one from your Firebase BoM wins) |
-| Server | A Dak server, and the Firebase project whose service account the Dak app uses |
+| Server | A DakPush server, and the Firebase project whose service account the app uses there |
 
 ## Install
 
@@ -41,7 +41,7 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("io.github.hridoyrocks:dak-push-android:0.1.0")
+    implementation("io.github.hridoyrocks:dakpush-android:0.1.0")
 }
 ```
 
@@ -179,11 +179,11 @@ Dak.addForegroundListener { n ->
 
 A message can have up to 3 buttons (`buttons` in the API); `n.actionId` is the
 tapped button's id, and the server counts taps per button. FCM's own Android
-notifications cannot have buttons, so Dak sends such messages as data and this
+notifications cannot have buttons, so DakPush sends such messages as data and this
 SDK shows them, with title, body, image, buttons, channel and collapse key.
 
 The server decides per device which messages to send that way, by the SDK
-version the device reports (`android-0.1.0` for this one). A Dak server that
+version the device reports (`android-0.1.0` for this one). A DakPush server that
 does not know this SDK yet sends Android button messages as plain
 notifications, without the buttons.
 
@@ -198,8 +198,8 @@ taps that cannot be sent (no network) are kept on disk and sent later.
 
 So nobody can claim another user's id and receive their pushes, the server
 checks `authHash = hex(HMAC-SHA256(key: identity secret, message: user id))`.
-Get the secret with `dak app identity-secret <app id>` and compute the hash on
-your server, for example in Laravel:
+Get the secret from the dashboard (or `dak app identity-secret <app id>` on
+the server) and compute the hash on your server, for example in Laravel:
 
 ```php
 'push_auth_hash' => hash_hmac('sha256', (string) $user->id, config('services.dak.identity_secret')),
@@ -240,7 +240,7 @@ class MyMessagingService : DakMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
-        // Dak's messages (those with "_dak_id" in the data) are the SDK's:
+        // DakPush messages (those with "_dak_id" in the data) are the SDK's:
         // its own receiver reports and shows them. Handle the rest.
         if (message.data.containsKey("_dak_id")) return
         handleMyMessage(message)
@@ -259,7 +259,7 @@ Installation IDs, which stay off unless the app turns them on. With
 `<meta-data android:name="firebase_messaging_installation_id_enabled" android:value="true" />`
 in your manifest the SDK registers and sends the installation ID
 (`token_type: "fid"`); without it, or with `DakOptions(useFid = false)`, the
-registration token as before. The Dak server sends to both.
+registration token as before. The DakPush server sends to both.
 
 ## Options
 
@@ -307,8 +307,8 @@ Turn on `DakOptions(debugLogs = true)` and filter Logcat by the tag `Dak`.
 - `Firebase is not set up` in the log: add the app's `google-services.json` and
   the `com.google.gms.google-services` plugin.
 - Check `appId` and `baseUrl` (the server's public URL, without `/v1`).
-- The Dak app needs the service account of the same Firebase project as the
-  app's `google-services.json`.
+- The app on the DakPush server needs the service account of the same
+  Firebase project as the app's `google-services.json`.
 
 **Nothing appears while the app is open.** Expected: see
 [While the app is open](#while-the-app-is-open).

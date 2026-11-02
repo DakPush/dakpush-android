@@ -314,7 +314,7 @@ internal class DakApi(
         }
 
         fun checkAppId(appId: String) {
-            require(appIdPattern.matches(appId)) { "appId must be the App ID from the Dak dashboard, not $appId" }
+            require(appIdPattern.matches(appId)) { "appId must be the App ID from the DakPush dashboard, not $appId" }
         }
 
         /** Retry-After as seconds or as an HTTP date; null when absent or unreadable. */

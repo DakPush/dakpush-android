@@ -82,7 +82,7 @@ public object Dak {
      * holds the app's start. Calls like [login] made meanwhile wait for the
      * saved state, then sync.
      *
-     * @param appId the App ID from the Dak dashboard.
+     * @param appId the App ID from the DakPush dashboard.
      * @param baseUrl the server's public URL, without `/v1`. It must be https;
      *   plain http works only for `localhost` and the emulator's `10.0.2.2`.
      * @throws IllegalArgumentException for an appId or baseUrl that cannot be right.
@@ -128,7 +128,7 @@ public object Dak {
     public val isInitialized: Boolean get() = client != null
 
     /**
-     * This device's id on the Dak server, or null before it is registered.
+     * This device's id on the DakPush server, or null before it is registered.
      * [init] returns before a new device registers; use [addDeviceIdListener]
      * to get the id when it comes.
      */

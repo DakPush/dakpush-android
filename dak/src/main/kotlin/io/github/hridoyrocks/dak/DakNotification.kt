@@ -16,7 +16,7 @@ public class DakButton internal constructor(
 
 /** A push notification as the app sees it. */
 public class DakNotification internal constructor(
-    /** Dak's message id, or null for pushes not sent through Dak. */
+    /** The message's id on the DakPush server, or null for pushes not sent through it. */
     public val id: String?,
     /** The title, or null for a silent push. */
     public val title: String?,
@@ -29,7 +29,7 @@ public class DakNotification internal constructor(
     public val url: String?,
     /** The notification's image (`image` when it was sent), if any. */
     public val imageUrl: String?,
-    /** The message's data, without Dak's own `_dak_` keys. */
+    /** The message's data, without the SDK's own `_dak_` keys. */
     public val data: Map<String, String>,
     /** The message's buttons. */
     public val buttons: List<DakButton>,
@@ -38,7 +38,7 @@ public class DakNotification internal constructor(
      * notification itself (and for messages that were not opened).
      */
     public val actionId: String?,
-    /** The FCM data as it came, with Dak's keys. */
+    /** The FCM data as it came, `_dak_` keys included. */
     public val raw: Map<String, String>,
 ) {
     /** A silent (data only) push has neither title nor body. */

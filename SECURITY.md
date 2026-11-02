@@ -23,7 +23,7 @@ Include what you can of:
 - the affected version or commit, the Android version and the Firebase
   Messaging version;
 - what an attacker can do, and what they need first (another app on the
-  phone, a network position, a stolen device, access to the Dak server);
+  phone, a network position, a stolen device, access to the DakPush server);
 - steps or a small app that shows the problem.
 
 ## What happens next
@@ -40,7 +40,7 @@ Include what you can of:
 
 In scope: this repository, the library and the example app.
 
-Report problems in the Dak server the same way; we pass them on. Problems in
+Report problems in the DakPush server the same way; we pass them on. Problems in
 Firebase or other dependencies belong to their own projects, but tell us if the
 SDK uses them in an unsafe way.
 

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the Dak Android SDK. Versions follow
+All notable changes to the DakPush Android SDK. Versions follow
 [semantic versioning](https://semver.org); below 1.0 a breaking change raises
 the minor version. **Breaking** marks changes that need code or settings
 changes in apps.
@@ -19,7 +19,7 @@ The first release: the push half of the Flutter SDK (dak_push 0.4), native.
   (`requestPermission`), `hasPermission`, `openNotificationSettings`.
 - The device id now and when it comes (`addDeviceIdListener`), refusals from
   background syncs (`addErrorListener`).
-- Shows Dak's data messages: title, body, image, up to 3 buttons, deep link,
+- Shows DakPush data messages: title, body, image, up to 3 buttons, deep link,
   channel, collapse key, sound and badge count.
 - Reports deliveries for every message in every app state, and opens with the
   tapped button. Only taps on notifications the app received count.
