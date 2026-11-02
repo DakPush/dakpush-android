@@ -1,0 +1,51 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <!-- Gets every FCM message, like Firebase's own receiver, in every app
+             state: it reports deliveries, shows the messages Dak sends as data
+             (those with buttons) and hands messages to an open app. Only
+             Google Play services can send to it (the c2dm permission). -->
+        <receiver
+            android:name=".internal.DakMessagingReceiver"
+            android:exported="true"
+            android:permission="com.google.android.c2dm.permission.SEND">
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- New push tokens and Firebase Installation IDs. An app with its own
+             FirebaseMessagingService extends DakMessagingService instead, or
+             forwards them (see the README). -->
+        <service
+            android:name=".DakMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Taps on notifications the SDK shows. Not exported, so no other app
+             can fake a tap; it records the open and opens the app like its
+             launcher icon. -->
+        <activity
+            android:name=".internal.DakTapActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- Asks for notification permission (Android 13+) without the app's
+             activity having to pass the result on. -->
+        <activity
+            android:name=".internal.DakPermissionActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|fontScale|locale|layoutDirection"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+    </application>
+</manifest>

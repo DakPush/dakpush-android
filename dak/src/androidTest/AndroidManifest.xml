@@ -1,0 +1,4 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The device test talks to a Dak on the computer (10.0.2.2) over http. -->
+    <application android:usesCleartextTraffic="true" />
+</manifest>

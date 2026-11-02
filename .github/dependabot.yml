@@ -1,0 +1,11 @@
+# Keeps the pinned action SHAs in the workflow current. Library versions are
+# raised by hand: the SDK keeps some old on purpose (see libs.versions.toml).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
