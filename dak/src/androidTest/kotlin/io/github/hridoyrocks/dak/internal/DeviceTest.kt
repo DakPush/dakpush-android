@@ -120,6 +120,8 @@ class DeviceTest {
         )
         assertTrue(DakNotifier.show(context, data, files.taps))
         val nm = context.getSystemService(NotificationManager::class.java)
+        // Android posts a notification a moment after notify() returns.
+        waitFor { nm.activeNotifications.any { it.tag == messageId } }
         val shown = nm.activeNotifications.single { it.tag == messageId }
         assertEquals(2, shown.notification.actions.size)
 
