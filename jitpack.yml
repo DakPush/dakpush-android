@@ -1,0 +1,5 @@
+# JitPack builds the SDK from a GitHub tag: com.github.hridoyrocks:dak-push-android:<tag>
+jdk:
+  - openjdk17
+install:
+  - ./gradlew :dak:publishToMavenLocal -x test

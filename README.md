@@ -8,9 +8,9 @@ channel), and reports deliveries, opens and button taps.
 Delivery goes through your own Firebase project (FCM), so pushes cost nothing.
 Kotlin and Java. In-app messages come in 0.2.
 
-> **Pre-release.** The Kotlin package and the Maven group are temporary and
-> will change once the product's domain is chosen. Nothing is published to
-> Maven Central or JitPack yet.
+> **Pre-release.** Installed from GitHub through JitPack for now. The Kotlin
+> package and the Maven coordinates will change once the product's domain is
+> chosen and the SDK moves to Maven Central.
 
 ## Requirements
 
@@ -23,27 +23,27 @@ Kotlin and Java. In-app messages come in 0.2.
 
 ## Install
 
-Until it is on Maven Central, build it into your local Maven repository:
-
-```bash
-./gradlew :dak:publishToMavenLocal
-```
+From GitHub through [JitPack](https://jitpack.io/#hridoyrocks/dak-push-android):
 
 ```kotlin
 // settings.gradle.kts
 dependencyResolutionManagement {
     repositories {
-        mavenLocal()
         google()
         mavenCentral()
+        maven("https://jitpack.io")
     }
 }
 
 // app/build.gradle.kts
 dependencies {
-    implementation("io.github.hridoyrocks:dakpush-android:0.1.0")
+    implementation("com.github.hridoyrocks:dak-push-android:0.1.0")
 }
 ```
+
+To try a change of your own, build it into your local Maven repository with
+`./gradlew :dak:publishToMavenLocal` and use
+`io.github.hridoyrocks:dakpush-android:0.1.0` with `mavenLocal()`.
 
 The app needs Firebase set up as usual: the `com.google.gms.google-services`
 Gradle plugin and the app's `google-services.json` from the Firebase console.
