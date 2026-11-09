@@ -1,4 +1,4 @@
-# JitPack builds the SDK from a GitHub tag: com.github.hridoyrocks:dak-push-android:<tag>
+# JitPack builds the SDK from a GitHub tag: com.github.DakPush:dakpush-android:<tag>
 jdk:
   - openjdk17
 install:

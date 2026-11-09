@@ -23,7 +23,7 @@ Kotlin and Java. In-app messages come in 0.2.
 
 ## Install
 
-From GitHub through [JitPack](https://jitpack.io/#hridoyrocks/dak-push-android):
+From GitHub through [JitPack](https://jitpack.io/#DakPush/dakpush-android):
 
 ```kotlin
 // settings.gradle.kts
@@ -37,7 +37,7 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.hridoyrocks:dak-push-android:0.1.0")
+    implementation("com.github.DakPush:dakpush-android:0.1.0")
 }
 ```
 
