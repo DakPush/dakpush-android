@@ -16,6 +16,12 @@ internal interface DakEvents {
 
     /** The server refused a change. */
     fun error(error: DakException)
+
+    /** The saved state is read (or could not be, and the SDK started over). */
+    fun loaded() {}
+
+    /** The device registered (again): it has new credentials. */
+    fun registered() {}
 }
 
 /**
@@ -195,6 +201,20 @@ internal class DakClient(
     /** Sends anything pending now. */
     fun flush(callback: DakCallback? = null) = scheduler.execute {
         whenLoaded { requestSync(callback) }
+    }
+
+    /**
+     * Another part of the SDK (in-app messages) got a 401: the next sync
+     * reaches the server even with nothing to change, and registers again if
+     * the server forgot the device.
+     */
+    fun verifyDevice() = scheduler.execute {
+        if (!started || disposed) return@execute
+        whenLoaded {
+            if (deviceId == null) return@whenLoaded
+            lastSeenSent = null
+            requestSync(null)
+        }
     }
 
     fun dispose() = scheduler.execute {
@@ -432,6 +452,7 @@ internal class DakClient(
             lastSeenSent = clock()
             save()
             publishDeviceId()
+            events.registered()
             log.d("dak: registered as ${reg.deviceId}")
             return
         }
@@ -552,6 +573,7 @@ internal class DakClient(
     private fun loadedNow() {
         loaded = true
         if (deviceId != null) publishDeviceId() // the saved one, for listeners from before the load
+        events.loaded()
         while (waiting.isNotEmpty()) waiting.removeFirst().invoke()
     }
 

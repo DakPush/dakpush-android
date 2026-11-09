@@ -20,13 +20,20 @@ import javax.crypto.spec.SecretKeySpec
 internal class FakeDakServer(val appId: String = APP_ID) {
     class Device(val id: String, var secret: String, var fields: JSONObject)
 
-    class Call(val method: String, val path: String, val auth: String?, val body: JSONObject?)
+    class Call(val method: String, val path: String, val auth: String?, val body: JSONObject?, val ifNoneMatch: String? = null)
 
     val server = MockWebServer()
     val devices = LinkedHashMap<String, Device>()
     val calls = CopyOnWriteArrayList<Call>()
     val opens = CopyOnWriteArrayList<Pair<String, String?>>()
     val receipts = CopyOnWriteArrayList<String>()
+
+    /** The in-app messages every device gets, as the server sends them. */
+    val inApp = CopyOnWriteArrayList<JSONObject>()
+
+    /** In-app events the server counted (resends skipped), with the device id. */
+    val inAppEvents = CopyOnWriteArrayList<Pair<String, JSONObject>>()
+    private val lastSeq = HashMap<String, Long>()
 
     /** Like `dak app set --identity-verification`; null leaves it off. */
     var identitySecret: String? = null
@@ -59,7 +66,7 @@ internal class FakeDakServer(val appId: String = APP_ID) {
         val path = request.path.orEmpty()
         val text = request.body.readUtf8()
         val body = if (text.isEmpty()) null else JSONObject(text)
-        calls.add(Call(request.method.orEmpty(), path, request.getHeader("Authorization"), body))
+        calls.add(Call(request.method.orEmpty(), path, request.getHeader("Authorization"), body, request.getHeader("If-None-Match")))
         queued.removeFirstOrNull()?.let { return it }
 
         val prefix = "/v1/apps/$appId/devices"
@@ -71,6 +78,31 @@ internal class FakeDakServer(val appId: String = APP_ID) {
             request.method == "POST" && rest.size == 2 && rest[1] == "opened" -> withDevice(rest[0], request) {
                 opens.add(body!!.getString("message_id") to body.optStringOrNull("action_id"))
                 MockResponse().setResponseCode(204)
+            }
+            request.method == "GET" && rest.size == 2 && rest[1] == "in-app" -> withDevice(rest[0], request) {
+                val list = JSONArray(inApp.toList())
+                val etag = "\"${list.toString().hashCode()}\""
+                if (request.getHeader("If-None-Match") == etag) {
+                    MockResponse().setResponseCode(304).setHeader("ETag", etag)
+                } else {
+                    MockResponse().setResponseCode(200).setHeader("ETag", etag)
+                        .setBody(JSONObject().put("messages", list).toString())
+                }
+            }
+            request.method == "POST" && rest.size == 3 && rest[1] == "in-app" && rest[2] == "events" -> withDevice(rest[0], request) {
+                val events = body!!.getJSONArray("events")
+                if (events.length() > 100) return@withDevice error(422, "invalid", "at most 100 events per request", "events")
+                var accepted = 0
+                for (i in 0 until events.length()) {
+                    val e = events.getJSONObject(i)
+                    val key = "${it.id} ${e.getString("message_id")}"
+                    val seq = e.getLong("seq")
+                    if (seq <= (lastSeq[key] ?: 0L)) continue
+                    lastSeq[key] = seq
+                    inAppEvents.add(it.id to e)
+                    accepted++
+                }
+                MockResponse().setResponseCode(200).setBody(JSONObject().put("accepted", accepted).toString())
             }
             request.method == "POST" && rest.size == 2 && rest[1] == "delivered" -> withDevice(rest[0], request) {
                 val ids = body!!.getJSONArray("message_ids")

@@ -3,10 +3,12 @@
 Native Android SDK for DakPush, a self-hosted push notification server. It
 registers the device with your DakPush server, links it to your user, keeps
 tags, shows DakPush notifications (image, up to 3 buttons, deep link,
-channel), and reports deliveries, opens and button taps.
+channel), and reports deliveries, opens and button taps. It also shows the
+in-app messages made in the DakPush dashboard: modals, cards, full-screen pages
+and banners over the app's own screens.
 
 Delivery goes through your own Firebase project (FCM), so pushes cost nothing.
-Kotlin and Java. In-app messages come in 0.2.
+Kotlin and Java.
 
 > **Pre-release.** Installed from GitHub through JitPack for now. The Kotlin
 > package and the Maven coordinates will change once the product's domain is
@@ -37,13 +39,13 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.DakPush:dakpush-android:0.1.0")
+    implementation("com.github.DakPush:dakpush-android:0.2.0")
 }
 ```
 
 To try a change of your own, build it into your local Maven repository with
 `./gradlew :dak:publishToMavenLocal` and use
-`io.github.hridoyrocks:dakpush-android:0.1.0` with `mavenLocal()`.
+`io.github.hridoyrocks:dakpush-android:0.2.0` with `mavenLocal()`.
 
 The app needs Firebase set up as usual: the `com.google.gms.google-services`
 Gradle plugin and the app's `google-services.json` from the Firebase console.
@@ -183,7 +185,7 @@ notifications cannot have buttons, so DakPush sends such messages as data and th
 SDK shows them, with title, body, image, buttons, channel and collapse key.
 
 The server decides per device which messages to send that way, by the SDK
-version the device reports (`android-0.1.0` for this one). A DakPush server that
+version the device reports (`android-0.2.0` for this one). A DakPush server that
 does not know this SDK yet sends Android button messages as plain
 notifications, without the buttons.
 
@@ -193,6 +195,101 @@ Nothing to set up: the SDK has its own receiver for FCM messages, which sees
 every message in every app state (next to Firebase's), so pushes are counted
 as delivered when they arrive, also while the app is not running. Receipts and
 taps that cannot be sent (no network) are kept on disk and sent later.
+
+## In-app messages
+
+Messages made in the dashboard's In-app tab (or with `POST /v1/in-app`) show
+over the app's own screens:
+
+| Layout | |
+|---|---|
+| Modal | A card in the middle, the app dimmed behind it. The X, a tap outside or back closes it. |
+| Card | Slides up from the bottom, with a large image on top. |
+| Full screen | Covers the app: image on top, buttons at the bottom, always a way out. |
+| Top / bottom banner | A slim banner; the app stays usable. A swipe or its timer closes it. |
+
+Nothing to wire: `Dak.init` is enough. The SDK draws each message in a window
+of its own over the activity on screen, in the sizes of the dashboard's
+preview, with the colours the message sets and the app's theme for the rest
+(dark mode included), the app's fonts, right-to-left layouts, the user's font
+size, and TalkBack (the window is named by the title, banners are read out,
+buttons are buttons).
+
+**When they show.** A message without a trigger shows when the app opens. Its
+trigger can wait for the nth session, time in the session, time since the
+install, or triggers the app sets:
+
+```kotlin
+Dak.addTrigger("screen", "checkout")   // a string, number or boolean
+Dak.removeTrigger("screen")
+Dak.clearTriggers()
+```
+
+Triggers stay on the phone and are forgotten when the process ends. The
+dashboard also sets how often one device sees a message (once, every session,
+or every so often, with a maximum), its priority and its dates.
+
+**Clicks.** Every tap on a message or a button closes it and reaches the click
+listeners, on the main thread:
+
+```kotlin
+Dak.addInAppClickListener { click ->
+    when (click.actionType) {
+        DakInAppClick.DEEP_LINK -> router.open(click.url!!) // yours to route
+        DakInAppClick.CUSTOM -> handle(click.buttonId)
+        // URL: opened in the browser by the SDK. TAGS: set by the SDK.
+    }
+}
+```
+
+```java
+Dak.addInAppClickListener(click -> {
+    if (DakInAppClick.DEEP_LINK.equals(click.getActionType())) router.open(click.getUrl());
+});
+```
+
+**Screens that must stay clear** (a call, a payment):
+
+```kotlin
+class CallActivity : AppCompatActivity(), DakInAppBlocker
+```
+
+or, for part of a screen (a Compose destination, a fragment), a block that
+ends with it (blocks nest):
+
+```kotlin
+DisposableEffect(Unit) {
+    val block = Dak.blockInApp()
+    onDispose { block.remove() }
+}
+```
+
+`Dak.pauseInApp(true)` and `Dak.pauseInApp(false)` switch them off and on for
+the whole app. A message on screen is hidden, not dismissed, and comes back
+afterwards; what came due meanwhile shows then. `Dak.isInAppPaused` tells.
+
+**How they behave.**
+- The list is fetched when a session starts (coming back after 5 minutes in
+  the background starts one: `DakOptions(sessionTimeoutMillis)`), at most once
+  a minute, and only what changed (ETag). A session start waits 3 seconds for
+  the server, then shows from the saved list.
+- The list is kept for offline starts; a list not refreshed for 7 days is not
+  shown, as it may hold messages that were stopped.
+- The image loads first (5 seconds at most) and stays on disk for the next
+  time. A message whose image does not load shows without it, or, with nothing
+  else to show, waits for the next session.
+- An impression counts once the message is on screen. Impressions, clicks
+  and dismissals are sent in batches a moment later and kept on disk until
+  the server has them, also across restarts; the server counts each once.
+- A message hidden by a pause, a rotation, another screen or the background
+  comes back on the next screen without counting again.
+- Banner timers wait for TalkBack users: with touch exploration on, a banner
+  stays until closed.
+- The X is read as "Close" ("বন্ধ করুন" in Bangla). To change it, add a string
+  named `dak_in_app_close` to your app's resources.
+
+To leave in-app messages out, `DakOptions(inAppMessages = false)`: the SDK
+then neither fetches nor shows them.
 
 ## Identity verification
 
@@ -269,6 +366,9 @@ Dak.init(this, appId, baseUrl, DakOptions(
     useFid = true,              // installation IDs when the manifest turns them on
     openAppOnTap = true,        // a tap on an SDK notification opens the app
     debugLogs = false,          // log what the SDK does (tag "Dak")
+    inAppMessages = true,       // show the dashboard's in-app messages
+    sessionTimeoutMillis = 300_000,            // back after this long: a new in-app session
+    inAppUrlSchemes = setOf("https", "http"),  // what an in-app "web page" action may open
 ))
 ```
 
@@ -280,14 +380,17 @@ app's timezone (set on the server) is used.
 
 The SDK sends: the push token or installation ID, platform, app/OS/SDK version,
 language, whether notifications are allowed, the user id and tags you set,
-which pushes arrived and were opened (with the button), and the UTC offset only
-if you turn it on. Nothing else: no IP, location, phone number, email or device
-model.
+which pushes arrived and were opened (with the button), which in-app messages
+were shown, tapped (with the button) or closed, and the UTC offset only if you
+turn it on. Nothing else: no IP, location, phone number, email or device model.
+In-app triggers never leave the phone.
 
 Its state (device id and secret, what the server last accepted, changes not yet
 sent) is a small file in the app's no-backup folder: private to the app, left
 out of Android's backups (a restored copy would make two phones one device),
-and deleted with the app. The device secret is sent only to your `baseUrl`.
+and deleted with the app. The in-app list, what this device has shown and
+events not yet sent are a second file there; in-app images are kept in the
+app's cache folder. The device secret is sent only to your `baseUrl`.
 
 ## How it works
 
@@ -324,9 +427,18 @@ Turn on `DakOptions(debugLogs = true)` and filter Logcat by the tag `Dak`.
 **Buttons do not show.** See [Buttons](#buttons): the server sends them only
 to SDK versions it knows can show them.
 
+**An in-app message does not show.** With `debugLogs` on, the log says when
+the list cannot be fetched and when a message is skipped because this SDK
+version cannot show it. Check that the message is
+active and in its dates, its audience includes the device, its trigger holds
+(custom triggers are set in this process), its frequency allows another
+showing, the screen is not a `DakInAppBlocker`, and in-app messages are not
+paused. A list not refreshed for 7 days is not shown.
+
 ## Example app
 
-[`example/`](example) is a small app with every call. Put your server in
+[`example/`](example) is a small app with every call, in-app triggers and
+pausing included, and a screen that keeps in-app messages away. Put your server in
 `local.properties` (git-ignored):
 
 ```properties

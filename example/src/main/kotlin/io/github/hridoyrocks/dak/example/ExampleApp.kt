@@ -32,6 +32,11 @@ class ExampleApp : Application() {
             Events.add("arrived while open: ${n.title} / ${n.body}")
             if (!n.isSilent) Dak.showNotification(n)
         }
+        // Taps on in-app messages. Deep links are the app's to route; web
+        // pages and tags the SDK has handled already.
+        Dak.addInAppClickListener { click ->
+            Events.add("in-app ${click.actionType}: message ${click.messageId} button=${click.buttonId} url=${click.url}")
+        }
         Dak.addErrorListener { e -> Events.add("refused: $e") }
         Dak.addDeviceIdListener { id -> Events.add("device id $id") }
     }

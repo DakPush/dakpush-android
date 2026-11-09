@@ -1,5 +1,6 @@
 package io.github.hridoyrocks.dak.example
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -58,6 +59,8 @@ class MainActivity : ComponentActivity() {
                 Events.add("not sent: ${e.message}")
             }
         }
+        inApp()
+
         findViewById<Button>(R.id.delete_tag).setOnClickListener {
             val k = key.text.toString().trim()
             try {
@@ -65,6 +68,34 @@ class MainActivity : ComponentActivity() {
             } catch (e: IllegalArgumentException) {
                 Events.add("not sent: ${e.message}")
             }
+        }
+    }
+
+    /** Triggers for in-app messages, and pausing them. */
+    private fun inApp() {
+        val key = findViewById<EditText>(R.id.trigger_key)
+        val value = findViewById<EditText>(R.id.trigger_value)
+        findViewById<Button>(R.id.add_trigger).setOnClickListener {
+            val k = key.text.toString().trim()
+            val v = value.text.toString().trim()
+            try {
+                // A number compares as a number ("level > 3"), anything else as text.
+                Dak.addTrigger(k, v.toLongOrNull() ?: v)
+                Events.add("trigger $k = $v")
+            } catch (e: IllegalArgumentException) {
+                Events.add("not set: ${e.message}")
+            }
+        }
+        findViewById<Button>(R.id.clear_triggers).setOnClickListener {
+            Dak.clearTriggers()
+            Events.add("triggers cleared")
+        }
+        findViewById<Switch>(R.id.pause_in_app).setOnCheckedChangeListener { _, on ->
+            Dak.pauseInApp(on)
+            Events.add(if (on) "in-app messages paused" else "in-app messages allowed")
+        }
+        findViewById<Button>(R.id.open_quiet).setOnClickListener {
+            startActivity(Intent(this, QuietActivity::class.java))
         }
     }
 

@@ -10,21 +10,13 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.os.Build
 import android.os.Bundle
-import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import io.github.hridoyrocks.dak.DakNotification
-import java.io.ByteArrayOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.TimeUnit
 
 /**
  * Shows the Dak messages Android's FCM cannot show itself: Dak sends a message
@@ -39,17 +31,12 @@ internal object DakNotifier {
 
     const val DEFAULT_CHANNEL = "dak_default"
     private const val FCM_CHANNEL = "fcm_fallback_notification_channel"
-    private const val MAX_IMAGE_BYTES = 5 * 1024 * 1024
+    private const val MAX_IMAGE_BYTES = DakImages.MAX_BYTES
     private const val MAX_BUTTONS = 3
 
     // The whole image download, inside the receiver's ~10 s: Firebase's own
     // receiver waits for this one.
     private const val IMAGE_DEADLINE_MS = 8000L
-
-    // Disconnects a download that runs past the deadline; a blocked read returns then.
-    private val watchdog: ScheduledExecutorService by lazy {
-        Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "dak-image-deadline").apply { isDaemon = true } }
-    }
 
     /** The FCM data of a message the SDK should show, or null. */
     fun dataToShow(data: Map<String, String>): Map<String, String>? =
@@ -213,42 +200,6 @@ internal object DakNotifier {
     }
 
     /** The picture, or null: no https URL, too slow (see [IMAGE_DEADLINE_MS]), too big, or not decodable. */
-    private fun image(url: String?): Bitmap? {
-        if (url.isNullOrEmpty() || !url.startsWith("https://")) return null
-        val deadline = SystemClock.elapsedRealtime() + IMAGE_DEADLINE_MS
-        return try {
-            val conn = URL(url).openConnection() as HttpURLConnection
-            conn.connectTimeout = 5000
-            conn.readTimeout = 5000
-            conn.instanceFollowRedirects = true
-            val stop = watchdog.schedule({ conn.disconnect() }, IMAGE_DEADLINE_MS, TimeUnit.MILLISECONDS)
-            try {
-                if (conn.responseCode != 200) return null
-                val length = conn.getHeaderField("Content-Length")?.toLongOrNull()
-                if (length != null && length > MAX_IMAGE_BYTES) return null
-                val out = ByteArrayOutputStream()
-                val buf = ByteArray(16 * 1024)
-                conn.inputStream.use { input ->
-                    while (true) {
-                        val n = input.read(buf)
-                        if (n < 0) break
-                        out.write(buf, 0, n)
-                        if (out.size() > MAX_IMAGE_BYTES || SystemClock.elapsedRealtime() > deadline) return null
-                    }
-                }
-                val bytes = out.toByteArray()
-                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-                var sample = 1
-                while (bounds.outWidth / sample > 1440 || bounds.outHeight / sample > 1440) sample *= 2
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
-            } finally {
-                stop.cancel(false)
-                conn.disconnect()
-            }
-        } catch (t: Throwable) {
-            // Also OutOfMemoryError while decoding: the notification goes without the picture.
-            null
-        }
-    }
+    private fun image(url: String?): Bitmap? =
+        DakImages.download(url, IMAGE_DEADLINE_MS, MAX_IMAGE_BYTES)?.let { DakImages.decode(it, maxSide = 1440) }
 }

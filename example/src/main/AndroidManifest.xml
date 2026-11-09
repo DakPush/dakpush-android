@@ -6,7 +6,7 @@
         android:label="DakPush example"
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.DarkActionBar">
+        android:theme="@style/ExampleTheme">
 
         <!-- Notifications Firebase shows use these, like the SDK's own. -->
         <meta-data
@@ -22,5 +22,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- A screen in-app messages never cover (it implements DakInAppBlocker). -->
+        <activity
+            android:name=".QuietActivity"
+            android:exported="false"
+            android:label="No in-app messages here" />
     </application>
 </manifest>

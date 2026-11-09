@@ -28,6 +28,9 @@ internal class DakFiles(dir: File, clock: () -> Long = System::currentTimeMillis
     val pending: DakPendingStore = FilePendingStore(File(dir, "pending.json"))
     val taps = DakTapStore(FileStateStore(File(dir, "taps.json")), clock)
 
+    /** In-app messages: the cached list, what this device showed, events not yet sent. */
+    val inApp: DakStateStore = FileStateStore(File(dir, "in_app.json"))
+
     companion object {
         val lock = Any()
 

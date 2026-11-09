@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The X on in-app messages, as TalkBack reads it. Apps can override it
+         with a string of the same name in their own resources. -->
+    <string name="dak_in_app_close">Close</string>
+</resources>

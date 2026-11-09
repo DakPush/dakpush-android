@@ -31,13 +31,36 @@ public class DakOptions(
     public val openAppOnTap: Boolean = true,
     /** Log what the SDK does (tag "Dak"). */
     public val debugLogs: Boolean = false,
+    /**
+     * Show the in-app messages made in the DakPush dashboard over the app's
+     * activities. With false the SDK neither fetches nor shows them.
+     */
+    public val inAppMessages: Boolean = true,
+    /**
+     * In-app messages: coming back after this long in the background starts
+     * a new session (for session counts and "every session" messages).
+     */
+    public val sessionTimeoutMillis: Long = 5 * 60 * 1000L,
+    /**
+     * In-app messages: the URL schemes a "web page" action may open. Others
+     * (like intent: or file:) are not opened; the click still reaches
+     * [Dak.addInAppClickListener].
+     */
+    public val inAppUrlSchemes: Set<String> = setOf("https", "http"),
 ) {
+    init {
+        require(sessionTimeoutMillis >= 0) { "sessionTimeoutMillis must not be negative" }
+    }
+
     /** The options for Java. */
     public class Builder {
         private var shareTimezoneOffset = false
         private var useFid = true
         private var openAppOnTap = true
         private var debugLogs = false
+        private var inAppMessages = true
+        private var sessionTimeoutMillis = 5 * 60 * 1000L
+        private var inAppUrlSchemes: Set<String> = setOf("https", "http")
 
         /** See [DakOptions.shareTimezoneOffset]. */
         public fun shareTimezoneOffset(value: Boolean): Builder = apply { shareTimezoneOffset = value }
@@ -51,7 +74,18 @@ public class DakOptions(
         /** See [DakOptions.debugLogs]. */
         public fun debugLogs(value: Boolean): Builder = apply { debugLogs = value }
 
+        /** See [DakOptions.inAppMessages]. */
+        public fun inAppMessages(value: Boolean): Builder = apply { inAppMessages = value }
+
+        /** See [DakOptions.sessionTimeoutMillis]. */
+        public fun sessionTimeoutMillis(value: Long): Builder = apply { sessionTimeoutMillis = value }
+
+        /** See [DakOptions.inAppUrlSchemes]. */
+        public fun inAppUrlSchemes(value: Set<String>): Builder = apply { inAppUrlSchemes = value.toSet() }
+
         /** The options. */
-        public fun build(): DakOptions = DakOptions(shareTimezoneOffset, useFid, openAppOnTap, debugLogs)
+        public fun build(): DakOptions = DakOptions(
+            shareTimezoneOffset, useFid, openAppOnTap, debugLogs, inAppMessages, sessionTimeoutMillis, inAppUrlSchemes,
+        )
     }
 }

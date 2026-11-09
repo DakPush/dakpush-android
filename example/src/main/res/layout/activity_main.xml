@@ -130,6 +130,64 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:text="In-app messages"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Messages from the dashboard show over this screen. Set a trigger for the ones that wait for one." />
+
+        <EditText
+            android:id="@+id/trigger_key"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Trigger key, like screen"
+            android:importantForAutofill="no"
+            android:inputType="text" />
+
+        <EditText
+            android:id="@+id/trigger_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Value, like home"
+            android:importantForAutofill="no"
+            android:inputType="text" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/add_trigger"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add trigger" />
+
+            <Button
+                android:id="@+id/clear_triggers"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Clear triggers" />
+        </LinearLayout>
+
+        <Switch
+            android:id="@+id/pause_in_app"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pause in-app messages" />
+
+        <Button
+            android:id="@+id/open_quiet"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Open a screen without messages" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
             android:text="Events"
             android:textStyle="bold" />
 

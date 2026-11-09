@@ -5,6 +5,34 @@ All notable changes to the DakPush Android SDK. Versions follow
 the minor version. **Breaking** marks changes that need code or settings
 changes in apps.
 
+## 0.2.0 - 2026-11-09
+
+In-app messages, like the Flutter SDK's (dak_push 0.2 and later).
+
+- Shows the dashboard's in-app messages over the app's activities with no
+  setup: modal, card, full screen (always with a way out) and top or bottom
+  banners, in the dashboard preview's sizes. Images, up to 3 buttons, the
+  message's colours with the app's theme for the rest, dark mode,
+  right-to-left, font scale, rotation, and TalkBack.
+- Triggers: app open, session count, time in the session, time since install,
+  and custom ones (`addTrigger`, `addTriggers`, `removeTrigger`,
+  `removeTriggers`, `clearTriggers`). Frequency (once, every session, interval,
+  at most n times), priority and dates, as the server sends them.
+- The list is fetched per session with an ETag and kept for offline starts;
+  images are loaded before a message shows and kept on disk.
+- Impressions, clicks (with the button) and dismissals are sent in batches,
+  kept on disk until the server has them; a message hidden by a pause, a
+  rotation or another screen comes back without counting again.
+- `addInAppClickListener` with `DakInAppClick` (deep links are the app's to
+  route; web pages open in the browser; tag actions are set). `pauseInApp`,
+  `blockInApp` (nested blocks for part of a screen), `isInAppPaused`, and
+  `DakInAppBlocker` for activities that must stay clear.
+- New `DakOptions`: `inAppMessages`, `sessionTimeoutMillis`, `inAppUrlSchemes`.
+- The device is checked again when the server answers an in-app call with
+  401, so a device the server forgot registers again.
+- Rotating the screen no longer counts as leaving and coming back to the app.
+- Reports its version as `android-0.2.0`.
+
 ## 0.1.0 - 2026-11-03
 
 The first release: the push half of the Flutter SDK (dak_push 0.4), native.

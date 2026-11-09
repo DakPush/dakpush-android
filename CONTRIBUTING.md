@@ -35,17 +35,24 @@ the SDK with `sdk.dir` in `local.properties`, or `ANDROID_HOME`.
   ```
 
 - **On a device or emulator** (`dak/src/androidTest`): notifications, the tap
-  activity, and Android's own HTTP stack. The server part needs the same
-  four values, as instrumentation arguments (see `DeviceTest`):
+  activity, in-app message windows over a real activity (background, rotation,
+  another screen, banners keeping the focus), and Android's own HTTP stack.
+  The server parts need the same four values, as instrumentation arguments
+  (see `DeviceTest`):
 
   ```bash
   ./gradlew :dak:connectedDebugAndroidTest \
     -Pandroid.testInstrumentationRunnerArguments.dakBaseUrl=http://10.0.2.2:8080 …
   ```
 
+  `InAppScreenshots` draws every in-app layout and saves pictures on the
+  device, for a person to look at in light and dark mode, at a large font
+  size, in landscape and right-to-left (see its comment).
+
 On emulators, never tap the system's permission dialogs in automated runs; set
 permissions with `adb shell pm grant` (or `pm set-permission-flags … user-fixed`
-to deny).
+to deny). The device tests' own APK targets the current Android, so the system
+does not ask by itself.
 
 ## How the code is laid out
 
@@ -63,15 +70,19 @@ Public API, in `io.github.hridoyrocks.dak`: `Dak` (the entry point),
 | `Taps` | The tap and permission activities, and telling real taps from made-up ones. |
 | `Watcher` | Follows the app's activities (foreground, the activity on screen, new intents) and holds the listener lists. |
 | `Platform` | Firebase tokens and installation IDs, and the facts the server targets by. |
+| `InAppModel` | In-app messages as the server sends them; anything this version cannot show is skipped. |
+| `InAppController` | The in-app logic: the cached list, sessions, triggers, frequency, what to show, and the events. Its own worker thread, network calls on another. |
+| `InAppPresenter` | Shows the chosen message in a window of its own over the activity on screen, and takes it away when that activity pauses. |
+| `InAppViews` | Draws each layout with plain views, the theme's colours, insets, motion and accessibility. |
+| `Images` | Downloading and decoding pictures (notifications and in-app), and the in-app image cache. |
 
-The client is a port of the Flutter SDK's `client.dart`; keep the two in step
-when the protocol changes.
-
-**In-app messages (0.2)** plug in beside the client, not into it:
-`DakClient.credentials` gives the device id and secret once registered,
-`DakApi.fetchInApp` and `sendInAppEvents` are the endpoints, and
-`DakActivityWatcher` knows when the app comes to the foreground and which
-activity is on screen to draw over.
+The client is a port of the Flutter SDK's `client.dart`, and the in-app
+controller of its `in_app/controller.dart`; keep them in step when the
+protocol changes. In-app messages sit beside the client, not in it: they use
+`DakClient.credentials`, `DakApi.fetchInApp` and `sendInAppEvents`, and
+`DakActivityWatcher` for the foreground and the activity on screen. The
+layouts follow the dashboard's preview (`web/src/lib/components/dak/InAppPreview.svelte`
+in the server repository) and the Flutter SDK's `views.dart`.
 
 ## Names
 

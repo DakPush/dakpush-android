@@ -1,5 +1,6 @@
 package io.github.hridoyrocks.dak
 
+import android.app.Activity
 import android.app.Application
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -24,12 +25,19 @@ import io.github.hridoyrocks.dak.internal.DakLog
 import io.github.hridoyrocks.dak.internal.DakNotifier
 import io.github.hridoyrocks.dak.internal.DakOpenedListeners
 import io.github.hridoyrocks.dak.internal.DakPermissions
+import io.github.hridoyrocks.dak.internal.DakStateStore
 import io.github.hridoyrocks.dak.internal.DakTaps
 import io.github.hridoyrocks.dak.internal.FirebasePushSource
+import io.github.hridoyrocks.dak.internal.InAppActions
+import io.github.hridoyrocks.dak.internal.InAppController
+import io.github.hridoyrocks.dak.internal.InAppImages
+import io.github.hridoyrocks.dak.internal.InAppPresenter
 import io.github.hridoyrocks.dak.internal.ThreadScheduler
 import io.github.hridoyrocks.dak.internal.UrlConnectionHttp
 import io.github.hridoyrocks.dak.internal.utf8Length
+import java.io.File
 import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 
 /**
  * The SDK's entry point.
@@ -40,6 +48,7 @@ import java.util.concurrent.Executor
  *         super.onCreate()
  *         Dak.init(this, appId = "APP_ID", baseUrl = "https://push.example.com")
  *         Dak.addOpenedListener { n -> route(n.url) }
+ *         Dak.addInAppClickListener { c -> if (c.actionType == DakInAppClick.DEEP_LINK) route(c.url) }
  *     }
  * }
  * ```
@@ -61,9 +70,19 @@ public object Dak {
     private var appContext: Context? = null
     private var watcher: DakActivityWatcher? = null
 
+    @Volatile
+    private var inApp: InAppController? = null
+
+    @Volatile
+    private var presenter: InAppPresenter? = null
+
+    @Volatile
+    private var log = DakLog(false)
+
     private val opened = DakOpenedListeners(main)
     private val foreground = DakListeners<DakForegroundListener>(main)
     private val errors = DakListeners<DakErrorListener>(main)
+    private val inAppClicks = DakListeners<DakInAppClickListener>(main)
     private val deviceIds = DakDeviceIdListeners(main) { client?.currentDeviceId }
     private val tagKey = Regex("^[A-Za-z0-9_.:-]{1,64}$")
 
@@ -71,6 +90,14 @@ public object Dak {
         override fun deviceId(id: String) = deviceIds.dispatch(id)
 
         override fun error(error: DakException) = errors.dispatch { it.onError(error) }
+
+        override fun loaded() {
+            inApp?.start()
+        }
+
+        override fun registered() {
+            inApp?.onRegistered()
+        }
     }
 
     /**
@@ -113,9 +140,24 @@ public object Dak {
                 shareTimezoneOffset = options.shareTimezoneOffset,
             )
             this.options = options
+            this.log = log
             appContext = app
             client = c
-            val w = DakActivityWatcher(onForeground = { c.onResume() }, onIntent = ::handleIntent)
+            val p = if (options.inAppMessages) InAppPresenter(InAppImages(File(app.cacheDir, "dak_in_app_images"), log), log) else null
+            lateinit var w: DakActivityWatcher
+            val i = p?.let { inAppController(api, files.inApp, c, it, log, options) { w.isForeground } }
+            presenter = p
+            inApp = i
+            w = DakActivityWatcher(
+                onForeground = {
+                    c.onResume()
+                    i?.onForeground()
+                },
+                onIntent = ::handleIntent,
+                onBackground = { i?.onBackground() },
+                onResumed = { p?.onActivityResumed(it) },
+                onPaused = { p?.onActivityPaused(it) },
+            )
             watcher = w
             (app as? Application)?.registerActivityLifecycleCallbacks(w)
                 ?: log.w("Dak.init needs the Application context to see taps and the app coming to the foreground")
@@ -349,6 +391,112 @@ public object Dak {
         requireClient().flush(callback)
     }
 
+    // ---- in-app messages
+
+    /**
+     * Sets a trigger that in-app messages can wait for, such as the screen
+     * the user is on (`Dak.addTrigger("screen", "checkout")`). Values are
+     * strings, numbers or booleans. Triggers stay on the phone and are
+     * forgotten when the app's process ends.
+     *
+     * @throws IllegalArgumentException for a bad key (1-64 of
+     *   `A-Z a-z 0-9 _ . : -`) or a value of another type.
+     */
+    @JvmStatic
+    public fun addTrigger(key: String, value: Any) {
+        addTriggers(mapOf(key to value))
+    }
+
+    /** Sets several triggers at once; see [addTrigger]. */
+    @JvmStatic
+    public fun addTriggers(triggers: Map<String, Any>) {
+        val values = LinkedHashMap<String, Any>()
+        for ((k, v) in triggers) {
+            require(tagKey.matches(k)) { "trigger key $k must be 1-64 of A-Z a-z 0-9 _ . : -" }
+            @Suppress("USELESS_IS_CHECK", "SENSELESS_COMPARISON") // Java callers can pass anything.
+            require(v != null && (v is String || v is Number || v is Boolean)) {
+                "trigger $k: values must be strings, numbers or booleans"
+            }
+            values[k] = v
+        }
+        requireClient()
+        inApp?.addTriggers(values)
+    }
+
+    /** Removes a trigger set with [addTrigger]. */
+    @JvmStatic
+    public fun removeTrigger(key: String) {
+        removeTriggers(listOf(key))
+    }
+
+    /** Removes several triggers. */
+    @JvmStatic
+    public fun removeTriggers(keys: Collection<String>) {
+        requireClient()
+        inApp?.removeTriggers(keys.toList())
+    }
+
+    /** Removes all triggers. */
+    @JvmStatic
+    public fun clearTriggers() {
+        requireClient()
+        inApp?.clearTriggers()
+    }
+
+    /**
+     * Stops (true) or allows (false) in-app messages, for example during a
+     * call or a payment. A message on screen is hidden, not dismissed, and
+     * comes back when they are allowed again. For a whole activity, implement
+     * [DakInAppBlocker]; for a part of a screen, [blockInApp] nests better.
+     */
+    @JvmStatic
+    public fun pauseInApp(paused: Boolean) {
+        requireClient()
+        inApp?.setPaused(paused)
+    }
+
+    /**
+     * Keeps in-app messages away until the returned block is removed, for a
+     * part of a screen that must stay clear (a Compose destination, a
+     * fragment). Blocks nest: messages come back when the last one ends.
+     *
+     * ```kotlin
+     * DisposableEffect(Unit) {
+     *     val block = Dak.blockInApp()
+     *     onDispose { block.remove() }
+     * }
+     * ```
+     */
+    @JvmStatic
+    public fun blockInApp(): DakSubscription {
+        requireClient()
+        val i = inApp ?: return DakSubscription {}
+        i.block()
+        val ended = java.util.concurrent.atomic.AtomicBoolean(false)
+        return DakSubscription { if (ended.compareAndSet(false, true)) i.unblock() }
+    }
+
+    /**
+     * Whether in-app messages are kept away now: by [pauseInApp],
+     * [blockInApp], a [DakInAppBlocker] activity on screen, or
+     * `DakOptions(inAppMessages = false)`.
+     */
+    @JvmStatic
+    public val isInAppPaused: Boolean
+        get() {
+            val i = inApp ?: return client != null
+            return i.isPaused || presenter?.blocked == true
+        }
+
+    /**
+     * Calls [listener] for taps on in-app messages and their buttons, on the
+     * main thread, after the message closed. Deep links
+     * ([DakInAppClick.DEEP_LINK]) are yours to route; web pages are opened in
+     * the browser and tags set by the SDK already.
+     */
+    @JvmStatic
+    public fun addInAppClickListener(listener: DakInAppClickListener): DakSubscription = inAppClicks.add(listener)
+
     // ---- for the SDK's components
 
     internal val openAppOnTap: Boolean get() = options.openAppOnTap
@@ -371,6 +519,53 @@ public object Dak {
 
     internal fun permissionChanged() {
         client?.refreshPermission()
+    }
+
+    private fun inAppController(
+        api: DakApi,
+        store: DakStateStore,
+        c: DakClient,
+        p: InAppPresenter,
+        log: DakLog,
+        options: DakOptions,
+        isForeground: () -> Boolean,
+    ): InAppController {
+        val network = Executors.newSingleThreadExecutor { r -> Thread(r, "dak-in-app-net").apply { isDaemon = true } }
+        val controller = InAppController(
+            api = api,
+            store = store,
+            credentials = { c.credentials },
+            ui = p,
+            actions = object : InAppActions {
+                override fun clicked(click: DakInAppClick) = inAppClicks.dispatch { it.onClick(click) }
+
+                override fun openUrl(url: String) = main.execute { openInAppUrl(url) }
+
+                override fun setTags(tags: Map<String, String?>) = c.setTags(tags, null)
+            },
+            scheduler = ThreadScheduler(log, "dak-in-app"),
+            network = { network.execute(it) },
+            log = log,
+            isForeground = isForeground,
+            onUnauthorized = { c.verifyDevice() },
+            images = p.images,
+            urlSchemes = options.inAppUrlSchemes.map { it.lowercase() }.toSet(),
+            sessionTimeoutMs = options.sessionTimeoutMillis,
+        )
+        p.controller = controller
+        return controller
+    }
+
+    /** A "web page" action: the browser (or the app, for its own App Links), over the activity on screen. */
+    private fun openInAppUrl(url: String) {
+        val context: Context = presenter?.activity ?: appContext ?: return
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE)
+        if (context !is Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            log.w("dak: nothing can open $url")
+        }
     }
 
     private fun requireClient(): DakClient = client ?: throw IllegalStateException("Call Dak.init first")

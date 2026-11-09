@@ -22,9 +22,9 @@ internal interface DakScheduler {
 }
 
 /** [DakScheduler] on a background thread. */
-internal class ThreadScheduler(private val log: DakLog) : DakScheduler {
+internal class ThreadScheduler(private val log: DakLog, name: String = "dak-worker") : DakScheduler {
     private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { r ->
-        Thread(r, "dak-worker").apply { isDaemon = true }
+        Thread(r, name).apply { isDaemon = true }
     }
 
     override fun execute(task: () -> Unit) {

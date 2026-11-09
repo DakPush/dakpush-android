@@ -32,6 +32,9 @@ android {
     }
 
     testOptions {
+        // The device tests' own APK: a current target, so Android never asks
+        // for notification permission by itself when a test activity starts.
+        targetSdk = 36
         unitTests {
             isIncludeAndroidResources = true
             all {
